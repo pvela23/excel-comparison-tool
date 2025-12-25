@@ -1,0 +1,204 @@
+Excel Comparison Tool (Python-based)
+1. MVP Feature Definition
+Core Value Proposition
+A non-destructive Excel comparison tool that intelligently compares two Excel files even when row counts differ, supporting both key-based and position-based (block) comparison, and producing a clean, aligned, analyst-ready comparison report.
+
+2. MVP Features (Phase 1)
+Comparison Modes
+Mode A: Key-Based Comparison (Primary Mode)
+User selects one or more key columns (e.g., Policy Number, Claim ID, Coverage ID)
+Keys may appear multiple times in both files — this is EXPECTED and VALID
+Files are not merged; data is processed by key groups
+Automatically aligns rows so matching keys are grouped together
+Hierarchical / Multi-Row Key Handling
+For each unique key, the tool aligns and compares the two sets of rows
+Matched rows are compared cell-by-cell
+Unmatched rows within the same key group are reconciled as added or removed
+Example
+Policy 12345 has 10 coverages in File A and 12 in File B
+Rows are aligned and compared
+Output:
+2 added coverages
+0 removed coverages
+X modified rows
+Composite Key Support
+User may select multiple columns as a composite key
+Example: Policy Number + Coverage ID + Rider
+Row Matching Within Key Groups
+Users explicitly choose how rows are aligned within the same key:
+Position-based (Default)
+1st row in File A → 1st row in File B
+Simple, fast, deterministic
+Secondary Sort Column
+Rows in each file are sorted by a chosen column
+Then aligned positionally
+Example: Coverage Type, Effective Date
+Best-Match Algorithm (Optional / Advanced)
+Uses similarity scoring across all non-key columns
+Matches rows using a greedy or Hungarian-style algorithm
+Results are flagged as HEURISTIC_MATCH
+Ambiguous matches are surfaced, not hidden
+Disabled by default; requires explicit user selection
+Identifies (Per Key Group)
+Added rows (extra rows in File B)
+Removed rows (extra rows in File A)
+Keys only in File B (entirely new key groups)
+Keys only in File A (entirely removed key groups)
+Modified rows (matched rows with value differences)
+
+Mode B: Block / Cell-to-Cell Comparison (Secondary Mode)
+Used when no reliable key exists
+User selects sheets or ranges to compare
+Intended for structural and positional diffs, not transactional reconciliation
+Algorithm
+Uses Myers' diff algorithm via difflib.SequenceMatcher
+Detects:
+Inserted rows
+Deleted rows
+Changed rows
+Changed cells
+Column structure differences
+Column Mapping
+Column mapping precedence:
+Manual mapping (user-defined)
+Header-name matching
+Position-based fallback
+Auto-maps columns when headers are present
+User can override mappings
+
+3. Reporting (Non-Destructive by Design)
+Source files opened read-only
+Output written to a new Excel file only
+Original files are never modified
+Report Structure
+1. Summary Sheet
+Total unique keys compared
+Keys only in File A
+Keys only in File B
+Keys in both files
+Total rows compared
+Added rows (within shared keys)
+Removed rows (within shared keys)
+Modified rows
+Changed cells
+Comparison timestamp
+2. Aligned Diff Sheet
+Rows grouped by key (all rows for a policy kept together)
+Layout:
+Key Columns | File A Columns | Status | File B Columns
+Status Values
+MATCH
+MODIFIED
+ADDED_ROW
+REMOVED_ROW
+NEW_KEY
+REMOVED_KEY
+HEURISTIC_MATCH
+Color Coding
+🟢 Green: Added rows
+🔴 Red: Removed rows
+🔵 Blue: New key
+🟠 Orange: Removed key
+🟡 Yellow: Modified cells
+⚪ White: Unchanged rows
+Visual separators between key groups
+3. Legend Sheet
+Color legend
+Comparison parameters used
+File paths and timestamps
+Row matching method used
+
+4. Data Handling Rules
+Comparison Scope (MVP)
+Values only
+Normalization
+Numbers: compared as floats (format ignored)
+Text: optional case-insensitive, whitespace-trimmed
+Dates: converted to datetime
+Formulas: compare calculated values, not formulas
+Post-MVP
+Formula comparison
+Cell formatting comparison
+
+5. Error Handling
+Validation
+File existence and readability
+Supported formats: .xlsx, .xls, .xlsm
+Corrupt file detection
+Structure Validation
+Missing key columns
+Data type mismatches in keys
+Missing sheets
+Multiple rows per key are valid (no duplicate warnings)
+User-Friendly Errors
+"Key column 'PolicyNumber' not found in File B"
+"Memory limit exceeded – try Sample Mode"
+"Unable to confidently align rows for key POL12345"
+
+6. User Interface & Flow (MVP)
+UI Approach
+Desktop application
+PySide6-based modern UI
+File pickers for Excel input
+User Flow
+Launch tool
+Select File A
+Select File B
+Choose comparison mode
+Configure mode-specific options
+Click Compare
+View progress
+Output report auto-opens
+
+7. Technical Specification
+Stack
+Python 3.10+
+pandas
+numpy
+openpyxl
+difflib
+PySide6
+Architecture
+UI Layer → Comparison Engine → Report Generator
+Key-Based Comparison Design
+Group by key columns (no DataFrame merge)
+Compare each key group independently
+Avoid Cartesian products
+Linear complexity per key group
+Key Principle
+Align first, then compare — never assume one-to-one row identity
+
+8. Performance & Limits
+Target: 500k rows < 60 seconds
+Optimized for datasets up to several million rows on modern machines
+Chunking for large files
+Optional Sample Mode for previews
+
+9. Prototype Plan
+Week 1 – Core Engine (Console)
+Key-group-based comparison engine
+Row alignment logic
+Excel diff output
+Week 2 – GUI & Error Handling
+PySide6 UI
+Progress indicators
+Friendly error messages
+Week 3 – Polish & Packaging
+Professional Excel formatting
+PyInstaller build
+Final testing
+
+10. Product Positioning
+Even in mature enterprises, Excel reconciliation often:
+Falls outside core systems
+Requires ad-hoc analysis
+Depends on manual effort
+This tool is:
+Fast
+Local
+Analyst-friendly
+Self-service
+
+11. Status
+Ready for development
+Next Step: Create GitHub repository and scaffold project structure
