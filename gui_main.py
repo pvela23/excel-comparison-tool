@@ -14,7 +14,8 @@ import pandas as pd
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLabel, QFileDialog, QGroupBox, QCheckBox,
-    QProgressBar, QMessageBox, QScrollArea, QGridLayout, QLineEdit
+    QProgressBar, QMessageBox, QScrollArea, QGridLayout, QLineEdit,
+    QComboBox, QInputDialog
 )
 from PySide6.QtCore import Qt, QThread, Signal, QSettings
 from PySide6.QtGui import QFont, QAction, QKeySequence, QDragEnterEvent, QDropEvent
@@ -76,6 +77,8 @@ class ExcelComparisonGUI(QMainWindow):
         super().__init__()
         self.file_a_path = None
         self.file_b_path = None
+        self.file_a_sheet = None
+        self.file_b_sheet = None
         self.df_a = None
         self.df_b = None
         self.key_checkboxes = []
@@ -110,7 +113,7 @@ class ExcelComparisonGUI(QMainWindow):
         title.setAlignment(Qt.AlignCenter)
         main_layout.addWidget(title)
 
-        subtitle = QLabel("Compare two Excel files using key-based matching")
+        subtitle = QLabel("Compare two Excel files using key-based or position-based matching")
         subtitle.setAlignment(Qt.AlignCenter)
         subtitle.setStyleSheet("color: gray; font-size: 9pt;")
         main_layout.addWidget(subtitle)
@@ -168,8 +171,7 @@ class ExcelComparisonGUI(QMainWindow):
         lbl_a.setStyleSheet("font-weight: normal; font-size: 9pt;")
        
         self.file_a_display = QLineEdit()
-        self.file_a_display.setReadOnly(True)
-        self.file_a_display.setPlaceholderText("No file selected (drag & drop or browse)")
+        self.file_a_display.setPlaceholderText("No file selected (drag & drop, browse, or paste path)")
         self.file_a_display.setStyleSheet("""
             QLineEdit {
                 padding: 6px;
@@ -179,6 +181,7 @@ class ExcelComparisonGUI(QMainWindow):
                 border-radius: 3px;
             }
         """)
+        self.file_a_display.textChanged.connect(lambda: self.on_file_path_changed("A"))
        
         btn_a = QPushButton("Browse...")
         btn_a.setFixedWidth(90)
@@ -191,8 +194,7 @@ class ExcelComparisonGUI(QMainWindow):
         lbl_b.setStyleSheet("font-weight: normal; font-size: 9pt;")
        
         self.file_b_display = QLineEdit()
-        self.file_b_display.setReadOnly(True)
-        self.file_b_display.setPlaceholderText("No file selected (drag & drop or browse)")
+        self.file_b_display.setPlaceholderText("No file selected (drag & drop, browse, or paste path)")
         self.file_b_display.setStyleSheet("""
             QLineEdit {
                 padding: 6px;
@@ -202,6 +204,7 @@ class ExcelComparisonGUI(QMainWindow):
                 border-radius: 3px;
             }
         """)
+        self.file_b_display.textChanged.connect(lambda: self.on_file_path_changed("B"))
        
         btn_b = QPushButton("Browse...")
         btn_b.setFixedWidth(90)
@@ -219,6 +222,16 @@ class ExcelComparisonGUI(QMainWindow):
 
         layout.setColumnStretch(1, 1)
         return group
+
+    def on_file_path_changed(self, which):
+        """Handle manual file path entry"""
+        if which == "A":
+            path = self.file_a_display.text().strip()
+        else:
+            path = self.file_b_display.text().strip()
+       
+        if path and Path(path).exists() and Path(path).is_file():
+            self.load_file_path(path, which)
 
     # ---------- Config Section ----------
     def create_config_section(self):
@@ -241,10 +254,38 @@ class ExcelComparisonGUI(QMainWindow):
         layout.setSpacing(10)
         layout.setContentsMargins(10, 15, 10, 10)
 
-        # ---- Key Columns ----
+        # ---- Comparison Mode ----
+        mode_layout = QHBoxLayout()
+        mode_layout.setSpacing(8)
+       
+        mode_label = QLabel("Comparison Mode:")
+        mode_label.setStyleSheet("font-weight: normal; font-size: 9pt;")
+        mode_layout.addWidget(mode_label)
+       
+        self.mode_key_based = QCheckBox("Key-Based (Row Matching)")
+        self.mode_key_based.setChecked(True)
+        self.mode_key_based.setStyleSheet("font-size: 9pt; font-weight: bold;")
+        self.mode_key_based.toggled.connect(self.on_mode_changed)
+       
+        self.mode_position_based = QCheckBox("Position-Based (Row 1 → Row 1)")
+        self.mode_position_based.setStyleSheet("font-size: 9pt; font-weight: bold;")
+        self.mode_position_based.toggled.connect(self.on_mode_changed)
+       
+        mode_layout.addWidget(self.mode_key_based)
+        mode_layout.addWidget(self.mode_position_based)
+        mode_layout.addStretch()
+       
+        layout.addLayout(mode_layout)
+
+        # ---- Key Columns Section ----
+        self.key_section = QWidget()
+        key_section_layout = QVBoxLayout(self.key_section)
+        key_section_layout.setSpacing(8)
+        key_section_layout.setContentsMargins(0, 0, 0, 0)
+       
         key_header = QLabel("Select Key Columns (unique row identifier):")
         key_header.setStyleSheet("font-weight: normal; font-size: 9pt;")
-        layout.addWidget(key_header)
+        key_section_layout.addWidget(key_header)
 
         # Select All / Deselect All buttons
         btn_layout = QHBoxLayout()
@@ -263,7 +304,7 @@ class ExcelComparisonGUI(QMainWindow):
         btn_layout.addWidget(self.select_all_btn)
         btn_layout.addWidget(self.deselect_all_btn)
         btn_layout.addStretch()
-        layout.addLayout(btn_layout)
+        key_section_layout.addLayout(btn_layout)
 
         # Filter
         self.key_filter = QLineEdit()
@@ -278,7 +319,7 @@ class ExcelComparisonGUI(QMainWindow):
             }
         """)
         self.key_filter.textChanged.connect(self.filter_key_columns)
-        layout.addWidget(self.key_filter)
+        key_section_layout.addWidget(self.key_filter)
 
         # Scroll area
         self.key_scroll = QScrollArea()
@@ -303,16 +344,56 @@ class ExcelComparisonGUI(QMainWindow):
         self.key_grid.setContentsMargins(8, 8, 8, 8)
 
         self.key_scroll.setWidget(self.key_container)
-        layout.addWidget(self.key_scroll)
+        key_section_layout.addWidget(self.key_scroll)
 
         # Key count label
         self.key_count_label = QLabel("")
         self.key_count_label.setStyleSheet("font-size: 8pt; color: gray; padding: 2px;")
-        layout.addWidget(self.key_count_label)
+        key_section_layout.addWidget(self.key_count_label)
+       
+        layout.addWidget(self.key_section)
+
+        # ---- Position-Based Info ----
+        self.position_info = QLabel(
+            "ℹ️ Position-based mode compares files row-by-row without keys.\n"
+            "Row 1 in File A is compared to Row 1 in File B, etc."
+        )
+        self.position_info.setStyleSheet("""
+            QLabel {
+                font-size: 8pt;
+                color: #555;
+                background-color: #F0F8FF;
+                border: 1px solid #B0D4FF;
+                border-radius: 3px;
+                padding: 8px;
+            }
+        """)
+        self.position_info.setWordWrap(True)
+        self.position_info.setVisible(False)
+        layout.addWidget(self.position_info)
 
         # ---- Options ----
-        options_layout = QHBoxLayout()
-        options_layout.setSpacing(15)
+        options_layout = QGridLayout()
+        options_layout.setSpacing(8)
+        options_layout.setColumnStretch(1, 1)
+       
+        # Tiebreaker column selector (only for Key-Based mode)
+        self.tiebreaker_label = QLabel("Tiebreaker Column:")
+        self.tiebreaker_label.setStyleSheet("font-weight: normal; font-size: 9pt;")
+       
+        self.tiebreaker_combo = QComboBox()
+        self.tiebreaker_combo.setFixedHeight(28)
+        self.tiebreaker_combo.setStyleSheet("""
+            QComboBox {
+                padding: 5px;
+                font-size: 9pt;
+                border: 1px solid #CCC;
+                border-radius: 3px;
+            }
+        """)
+        
+        options_layout.addWidget(self.tiebreaker_label, 0, 0, Qt.AlignmentFlag.AlignRight)
+        options_layout.addWidget(self.tiebreaker_combo, 0, 1)
        
         self.case_sensitive = QCheckBox("Case Sensitive")
         self.case_sensitive.setStyleSheet("font-size: 9pt;")
@@ -321,13 +402,49 @@ class ExcelComparisonGUI(QMainWindow):
         self.trim_whitespace.setChecked(True)
         self.trim_whitespace.setStyleSheet("font-size: 9pt;")
 
-        options_layout.addWidget(self.case_sensitive)
-        options_layout.addWidget(self.trim_whitespace)
-        options_layout.addStretch()
+        options_layout.addWidget(self.case_sensitive, 2, 1)
+        options_layout.addWidget(self.trim_whitespace, 3, 1)
        
         layout.addLayout(options_layout)
 
         return self.config_group
+   
+
+    
+    def on_mode_changed(self):
+        """Handle comparison mode change - now uses radio button logic"""
+        sender = self.sender()
+        
+        if sender == self.mode_key_based and self.mode_key_based.isChecked():
+            # Key-based mode selected
+            self.mode_position_based.blockSignals(True)
+            self.mode_position_based.setChecked(False)
+            self.mode_position_based.blockSignals(False)
+            self.key_section.setVisible(True)
+            self.position_info.setVisible(False)
+            self.tiebreaker_label.setVisible(True)
+            self.tiebreaker_combo.setVisible(True)
+            
+        elif sender == self.mode_position_based and self.mode_position_based.isChecked():
+            # Position-based mode selected
+            self.mode_key_based.blockSignals(True)
+            self.mode_key_based.setChecked(False)
+            self.mode_key_based.blockSignals(False)
+            self.key_section.setVisible(False)
+            self.position_info.setVisible(True)
+            self.tiebreaker_label.setVisible(False)
+            self.tiebreaker_combo.setVisible(False)
+            
+        elif not self.mode_key_based.isChecked() and not self.mode_position_based.isChecked():
+            # If user unchecks one, re-check it (radio button behavior)
+            if sender == self.mode_key_based:
+                self.mode_key_based.blockSignals(True)
+                self.mode_key_based.setChecked(True)
+                self.mode_key_based.blockSignals(False)
+            else:
+                self.mode_position_based.blockSignals(True)
+                self.mode_position_based.setChecked(True)
+                self.mode_position_based.blockSignals(False)
 
     # ---------- Compare Section ----------
     def create_compare_section(self):
@@ -432,37 +549,77 @@ class ExcelComparisonGUI(QMainWindow):
        
         # Remember directory
         self.last_directory = str(Path(path).parent)
-       
-        self.load_file_path(path, which)
+        
+        # Set the path in the display field
+        if which == "A":
+            self.file_a_display.setText(path)
+        else:
+            self.file_b_display.setText(path)
 
     def load_file_path(self, path, which):
         """Load a file given its path"""
         try:
-            df = pd.read_excel(path)
+            path_obj = Path(path)
+            if not path_obj.exists():
+                QMessageBox.warning(self, "File Not Found", f"File not found: {path}")
+                return
+            
+            # Get sheet names
+            excel_file = pd.ExcelFile(path)
+            sheet_names = excel_file.sheet_names
+           
+            # If multiple sheets, let user choose
+            sheet_name = sheet_names[0]  # Default to first sheet
+            if len(sheet_names) > 1:
+                sheet_name, ok = QInputDialog.getItem(
+                    self, "Select Sheet",
+                    f"File has {len(sheet_names)} sheets. Select one:",
+                    sheet_names, 0, False
+                )
+                if not ok:
+                    return
+           
+            # Load with string dtype to prevent conversions
+            df = pd.read_excel(path, sheet_name=sheet_name, dtype=str)
            
             # Validate
             if df.empty:
                 QMessageBox.warning(
                     self, "Empty File",
-                    f"The selected file appears to be empty.\n\n{path}"
+                    f"The selected sheet appears to be empty.\n\nFile: {path_obj.name}"
                 )
                 return
            
+            # Guardrail on file size
+            if len(df) > 500_000:
+                reply = QMessageBox.question(
+                    self, "Large File Warning",
+                    f"This file has {len(df):,} rows, which may consume significant memory.\n\n"
+                    "For files over 500,000 rows, comparison may be slow.\n\n"
+                    "Continue anyway?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.No
+                )
+                if reply == QMessageBox.StandardButton.No:
+                    return
+           
             if which == "A":
                 self.file_a_path = path
+                self.file_a_sheet = sheet_name
                 self.df_a = df
                 self.file_a_display.setText(path)
-                self.file_a_display.setToolTip(path)
+                self.file_a_display.setToolTip(f"File: {path}\nRows: {len(df):,}\nColumns: {len(df.columns)}")
                 self.statusBar().showMessage(
-                    f"✅ File A loaded: {len(df)} rows, {len(df.columns)} columns"
+                    f"✅ File A loaded: {len(df):,} rows, {len(df.columns)} columns"
                 )
             else:
                 self.file_b_path = path
+                self.file_b_sheet = sheet_name
                 self.df_b = df
                 self.file_b_display.setText(path)
-                self.file_b_display.setToolTip(path)
+                self.file_b_display.setToolTip(f"File: {path}\nRows: {len(df):,}\nColumns: {len(df.columns)}")
                 self.statusBar().showMessage(
-                    f"✅ File B loaded: {len(df)} rows, {len(df.columns)} columns"
+                    f"✅ File B loaded: {len(df):,} rows, {len(df.columns)} columns"
                 )
 
             if self.df_a is not None and self.df_b is not None:
@@ -480,11 +637,20 @@ class ExcelComparisonGUI(QMainWindow):
                 self.update_key_column_options(common_cols)
                 self.config_group.setEnabled(True)
                 self.compare_btn.setEnabled(True)
-               
+
+        except FileNotFoundError:
+            QMessageBox.critical(self, "File Not Found", f"Could not find the file:\n\n{path}")
+        except PermissionError:
+            QMessageBox.critical(
+                self, "Permission Denied",
+                f"Cannot access the file (it may be open in Excel):\n\n{path}"
+            )
+        except ValueError as e:
+            QMessageBox.critical(self, "Invalid File Format", f"Invalid Excel file:\n\n{path}")
         except Exception as e:
             QMessageBox.critical(
                 self, "Error Loading File",
-                f"Could not load file:\n\n{path}\n\nError: {str(e)}"
+                f"An unexpected error occurred:\n\n{path}\n\nError: {str(e)}"
             )
 
     # ---------- Drag & Drop ----------
@@ -497,17 +663,17 @@ class ExcelComparisonGUI(QMainWindow):
         excel_files = [f for f in files if f.endswith(('.xlsx', '.xls', '.xlsm'))]
        
         if len(excel_files) >= 2:
-            self.load_file_path(excel_files[0], "A")
-            self.load_file_path(excel_files[1], "B")
+            self.file_a_display.setText(excel_files[0])
+            self.file_b_display.setText(excel_files[1])
             QMessageBox.information(
                 self, "Files Loaded",
                 f"Loaded:\n• File A: {Path(excel_files[0]).name}\n• File B: {Path(excel_files[1]).name}"
             )
         elif len(excel_files) == 1:
             if self.file_a_path is None:
-                self.load_file_path(excel_files[0], "A")
+                self.file_a_display.setText(excel_files[0])
             else:
-                self.load_file_path(excel_files[0], "B")
+                self.file_b_display.setText(excel_files[0])
         else:
             QMessageBox.warning(
                 self, "Invalid Files",
@@ -524,7 +690,7 @@ class ExcelComparisonGUI(QMainWindow):
 
         self.key_checkboxes.clear()
 
-        cols_per_row = 4  # Compact: 4 columns
+        cols_per_row = 4
         row = col = 0
 
         for name in columns:
@@ -539,6 +705,12 @@ class ExcelComparisonGUI(QMainWindow):
                 col = 0
                 row += 1
        
+        # Update tiebreaker options (only for key-based mode)
+        self.tiebreaker_combo.clear()
+        self.tiebreaker_combo.addItem("(None - Optional)", None)
+        for column in columns:
+            self.tiebreaker_combo.addItem(column, column)
+       
         self.update_key_count()
 
     def filter_key_columns(self, text):
@@ -550,7 +722,6 @@ class ExcelComparisonGUI(QMainWindow):
             if visible:
                 visible_count += 1
        
-        # Update count with filter info
         if text:
             self.key_count_label.setText(
                 f"Showing {visible_count} of {len(self.key_checkboxes)} columns"
@@ -573,17 +744,23 @@ class ExcelComparisonGUI(QMainWindow):
     # ---------- Comparison ----------
     def run_comparison(self):
         keys = [cb.text() for cb in self.key_checkboxes if cb.isChecked()]
-        if not keys:
-            QMessageBox.warning(
-                self, "Missing Keys",
-                "Please select at least one key column."
-            )
-            return
+        if self.mode_key_based.isChecked():
+            if not keys:
+                QMessageBox.warning(
+                    self, "Missing Keys",
+                    "Please select at least one key column."
+                )
+                return
+        else:
+            keys = []  # No keys in position-based mode
+
+        # Get tiebreaker column (only used in key-based mode with duplicate keys)
+        tiebreaker = self.tiebreaker_combo.currentData()
 
         config = ComparisonConfig(
             key_columns=keys,
-            alignment_method=AlignmentMethod.POSITION,
-            secondary_sort_column=None,
+            alignment_method=AlignmentMethod.SECONDARY_SORT if tiebreaker else AlignmentMethod.POSITION,
+            secondary_sort_column=tiebreaker,
             case_sensitive=self.case_sensitive.isChecked(),
             trim_whitespace=self.trim_whitespace.isChecked()
         )
@@ -612,6 +789,7 @@ class ExcelComparisonGUI(QMainWindow):
         path = data["output_path"]
         result = data["result"]
         summary = result.summary
+        metadata = result.comparison_metadata
        
         # Format time
         if elapsed < 60:
@@ -621,6 +799,22 @@ class ExcelComparisonGUI(QMainWindow):
             seconds = elapsed % 60
             time_str = f"{minutes} min {seconds:.1f} sec"
        
+        config = metadata.get('config')
+       
+        # Build configuration summary
+        config_summary = ""
+        if config:
+            config_summary = f"""
+⚙️ Comparison Configuration:
+• Key Columns: {', '.join(config.key_columns) if config.key_columns else 'None (Position-based)'}
+• Comparison Mode: {'Key-Based' if config.key_columns else 'Position-Based'}"""
+            if config.secondary_sort_column:
+                config_summary += f"\n• Tiebreaker Column: {config.secondary_sort_column}"
+            config_summary += f"""
+• Case Sensitive: {'Yes' if config.case_sensitive else 'No'}
+• Trim Whitespace: {'Yes' if config.trim_whitespace else 'No'}
+"""
+       
         # Detailed results dialog
         msg = QMessageBox(self)
         msg.setWindowTitle("Comparison Complete")
@@ -628,19 +822,30 @@ class ExcelComparisonGUI(QMainWindow):
         msg.setText(f"✅ Comparison completed in {time_str}!")
        
         details = f"""
-📊 Summary:
+📊 Summary Statistics:
+• Total unique keys in File A: {summary['total_unique_keys_a']}
+• Total unique keys in File B: {summary['total_unique_keys_b']}
 • Keys in common: {summary['keys_in_common']}
-• Keys only in A: {summary['keys_only_in_a']}
-• Keys only in B: {summary['keys_only_in_b']}
+• Keys only in File A: {summary['keys_only_in_a']}
+• Keys only in File B: {summary['keys_only_in_b']}
 
-📝 Rows:
-• Matching: {summary['match_count']}
-• Modified: {summary['modified_count']}
-• Added: {summary['added_row_count']}
-• Removed: {summary['removed_row_count']}
-
+📝 Row Comparison Results:
+• Total rows compared: {summary['total_rows_compared']}
+• ✅ Matching rows: {summary['match_count']}
+• 🟡 Modified rows: {summary['modified_count']}
+• 🟢 Added rows: {summary['added_row_count']}
+• 🔴 Removed rows: {summary['removed_row_count']}
+• 🔵 Rows in new keys: {summary['new_key_count']}
+• 🟠 Rows in removed keys: {summary['removed_key_count']}
+{config_summary}
 📂 Report Location:
 {path}
+
+📁 Source Files:
+• File A: {self.file_a_path}
+  Sheet: {self.file_a_sheet}
+• File B: {self.file_b_path}
+  Sheet: {self.file_b_sheet}
 """
         msg.setDetailedText(details)
        
