@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Enhanced GUI for Excel Comparison Tool
 Built with PySide6 - Compact & Feature-Rich
