@@ -931,7 +931,8 @@ class ExcelComparisonGUI(QMainWindow):
                     return
                
                 self.update_key_column_options(common_cols)
-                # Button state already updated by update_compare_button_state() above
+                # Ensure compare button and config become enabled now both files are loaded
+                self.update_compare_button_state()
 
         except FileNotFoundError:
             QMessageBox.critical(self, "File Not Found", f"Could not find the file:\n\n{path}")
