@@ -5,7 +5,7 @@ Get up and running with Excel Comparison Tool in 5 minutes.
 ## 📦 Installation (One-Time Setup)
 
 ### Step 1: Install Python
-- Download Python 3.10+ from [python.org](https://www.python.org/downloads/)
+- Download Python 3.8+ from [python.org](https://www.python.org/downloads/)
 - During installation, check "Add Python to PATH"
 
 ### Step 2: Download the Tool
@@ -154,12 +154,7 @@ If you have 50+ columns:
 ### Tip 3: Keyboard Shortcut
 After selecting keys, press `Ctrl+Enter` to compare immediately
 
-### Tip 4: Compare Different Sheets
-If your Excel has multiple sheets:
-- When you select file, dialog asks which sheet
-- Can compare Sheet1 from File A vs Sheet2 from File B
-
-### Tip 5: Save Time with Select All
+### Tip 4: Save Time with Select All
 If you need many key columns:
 - Click "Select All" button
 - Uncheck the few you don't need

@@ -3,7 +3,7 @@
 A professional desktop application for comparing Excel files with intelligent key-based matching. Built for analysts, accountants, and data professionals who need to reconcile complex Excel files quickly and accurately.
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue)
-![Python](https://img.shields.io/badge/python-3.10+-green)
+![Python](https://img.shields.io/badge/python-3.8+-green)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 ## 🎯 Overview
@@ -63,7 +63,7 @@ Excel Comparison Tool solves a common problem: comparing two Excel files when ro
 ### Installation
 
 #### Prerequisites
-- Python 3.10 or higher
+- Python 3.8 or higher
 - Windows, macOS, or Linux
 
 #### Install from Source

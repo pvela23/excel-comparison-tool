@@ -2,12 +2,20 @@
 Excel Comparison Tool - Main Entry Point
 """
 
+import sys
+import os
+
+# Version check
+if sys.version_info < (3, 8):
+    print("❌ Error: Python 3.8 or higher is required")
+    print(f"   Current version: {sys.version}")
+    print("   Please upgrade Python from https://python.org")
+    sys.exit(1)
+
 from src.core import ComparisonEngine, ComparisonConfig, AlignmentMethod
 from src.reports.report_generator import generate_comparison_report
 import pandas as pd
 from datetime import datetime
-import sys
-import os
 import platform
 
 

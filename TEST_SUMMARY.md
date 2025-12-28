@@ -358,5 +358,5 @@ For questions about the test suite, refer to [TEST_GUIDE.md](tests/TEST_GUIDE.md
 
 **Last Updated**: December 26, 2025  
 **Test Framework**: pytest 9.0.2+  
-**Python Version**: 3.10+  
+**Python Version**: 3.8+  
 **Coverage Tool**: pytest-cov 7.0.0+

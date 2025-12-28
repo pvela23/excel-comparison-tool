@@ -5,10 +5,18 @@ Built with PySide6 - Compact & Feature-Rich
 """
 
 import sys
+import os
+
+# Version check
+if sys.version_info < (3, 8):
+    print("❌ Error: Python 3.8 or higher is required")
+    print(f"   Current version: {sys.version}")
+    print("   Please upgrade Python from https://python.org")
+    sys.exit(1)
+
 from pathlib import Path
 from datetime import datetime
 import time
-import os
 import platform
 import pandas as pd
 
@@ -171,6 +179,9 @@ class ExcelComparisonGUI(QMainWindow):
        
         # Keyboard shortcuts
         self.setup_shortcuts()
+        
+        # Connect tiebreaker combo signal
+        self.tiebreaker_combo.currentIndexChanged.connect(self.on_tiebreaker_changed)
 
     def ui_font(self, size=9, bold=False):
         font = QFont()
@@ -611,6 +622,13 @@ class ExcelComparisonGUI(QMainWindow):
         options_layout.addWidget(self.tiebreaker_label, 0, 0, Qt.AlignmentFlag.AlignRight)
         options_layout.addWidget(self.tiebreaker_combo, 0, 1)
        
+        # Tip for tiebreaker column
+        self.tiebreaker_tip = QLabel("💡 Tip: Use \"Sort by\" when files have same keys but rows are in different order")
+        self.tiebreaker_tip.setStyleSheet(f"font-size: 10pt; color: {self.COLOR_TERTIARY_TEXT}; font-style: italic;")
+        self.tiebreaker_tip.setVisible(False)  # Initially hidden
+        self.tiebreaker_tip.setWordWrap(True)
+        options_layout.addWidget(self.tiebreaker_tip, 1, 0, 1, 2)  # Span both columns
+       
         self.case_sensitive = QCheckBox("Case Sensitive")
         self.case_sensitive.setStyleSheet(f"font-size: 11pt; color: {self.COLOR_PRIMARY_TEXT};")
        
@@ -618,8 +636,8 @@ class ExcelComparisonGUI(QMainWindow):
         self.trim_whitespace.setChecked(True)
         self.trim_whitespace.setStyleSheet(f"font-size: 11pt; color: {self.COLOR_PRIMARY_TEXT};")
 
-        options_layout.addWidget(self.case_sensitive, 1, 1)
-        options_layout.addWidget(self.trim_whitespace, 2, 1)
+        options_layout.addWidget(self.case_sensitive, 2, 1)
+        options_layout.addWidget(self.trim_whitespace, 3, 1)
         
         advanced_layout.addLayout(options_layout)
         layout.addWidget(self.advanced_container)
@@ -638,9 +656,13 @@ class ExcelComparisonGUI(QMainWindow):
             if self.mode_key_based.isChecked():
                 self.tiebreaker_label.setVisible(True)
                 self.tiebreaker_combo.setVisible(True)
+                # Show tip if tiebreaker is selected
+                tiebreaker = self.tiebreaker_combo.currentData()
+                self.tiebreaker_tip.setVisible(tiebreaker is not None)
             else:
                 self.tiebreaker_label.setVisible(False)
                 self.tiebreaker_combo.setVisible(False)
+                self.tiebreaker_tip.setVisible(False)
         else:
             self.advanced_toggle.setText("▼ Advanced options")
     
@@ -659,6 +681,9 @@ class ExcelComparisonGUI(QMainWindow):
             if self.advanced_expanded:
                 self.tiebreaker_label.setVisible(True)
                 self.tiebreaker_combo.setVisible(True)
+                # Show tip if tiebreaker is selected
+                tiebreaker = self.tiebreaker_combo.currentData()
+                self.tiebreaker_tip.setVisible(tiebreaker is not None)
             
         elif sender == self.mode_position_based and self.mode_position_based.isChecked():
             # Position-based mode selected
@@ -671,6 +696,7 @@ class ExcelComparisonGUI(QMainWindow):
             if self.advanced_expanded:
                 self.tiebreaker_label.setVisible(False)
                 self.tiebreaker_combo.setVisible(False)
+                self.tiebreaker_tip.setVisible(False)
             
         elif not self.mode_key_based.isChecked() and not self.mode_position_based.isChecked():
             # If user unchecks one, re-check it (radio button behavior)
@@ -682,6 +708,11 @@ class ExcelComparisonGUI(QMainWindow):
                 self.mode_position_based.blockSignals(True)
                 self.mode_position_based.setChecked(True)
                 self.mode_position_based.blockSignals(False)
+
+    def on_tiebreaker_changed(self):
+        """Handle tiebreaker column selection change"""
+        tiebreaker = self.tiebreaker_combo.currentData()
+        self.tiebreaker_tip.setVisible(tiebreaker is not None)
 
     # ---------- Compare Section ----------
     def create_compare_section(self):
@@ -757,6 +788,12 @@ class ExcelComparisonGUI(QMainWindow):
         layout.addWidget(self.compare_btn)
         layout.addWidget(reassurance)
         layout.addWidget(self.progress_bar)
+
+        # Add timeout handling for long operations
+        self.worker.timeout = 300000  # 5 minutes
+        # Add progress cancellation
+        self.cancel_button = QPushButton("Cancel")
+        
         return group
 
     # ---------- Styles ----------

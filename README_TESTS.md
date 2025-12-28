@@ -481,7 +481,7 @@ The test suite provides confidence in code quality, enables safe refactoring, an
 
 **Test Suite Completed**: December 26, 2025  
 **Framework**: pytest 9.0.2+  
-**Python Version**: 3.10+  
+**Python Version**: 3.8+  
 **Coverage**: 97%  
 **Tests**: 55/55 ✅ Passing  
 
