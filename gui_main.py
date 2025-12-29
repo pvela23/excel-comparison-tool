@@ -789,8 +789,6 @@ class ExcelComparisonGUI(QMainWindow):
         layout.addWidget(reassurance)
         layout.addWidget(self.progress_bar)
 
-        # Add timeout handling for long operations
-        self.worker.timeout = 300000  # 5 minutes
         # Add progress cancellation
         self.cancel_button = QPushButton("Cancel")
         
