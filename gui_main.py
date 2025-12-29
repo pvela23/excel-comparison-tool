@@ -27,7 +27,7 @@ from PySide6.QtWidgets import (
     QComboBox, QInputDialog, QFrame, QSizePolicy
 )
 from PySide6.QtCore import Qt, QThread, Signal, QSettings
-from PySide6.QtGui import QFont, QAction, QKeySequence, QDragEnterEvent, QDropEvent
+from PySide6.QtGui import QFont, QAction, QKeySequence, QDragEnterEvent, QDropEvent, QIcon
 
 from src.core import ComparisonEngine, ComparisonConfig, AlignmentMethod
 from src.reports.report_generator import generate_comparison_report
@@ -1271,6 +1271,7 @@ def main():
     app.setPalette(palette)
     
     window = ExcelComparisonGUI()
+    window.setWindowIcon(QIcon("GridKit.ico"))
     window.show()
     sys.exit(app.exec())
 

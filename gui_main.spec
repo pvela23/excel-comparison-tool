@@ -5,7 +5,7 @@ a = Analysis(
     ['gui_main.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[('GridKit.ico', '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
