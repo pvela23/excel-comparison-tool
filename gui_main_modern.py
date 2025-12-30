@@ -134,8 +134,8 @@ class ExcelComparisonGUI(QMainWindow):
         central = QWidget()
         self.setCentralWidget(central)
         main_layout = QVBoxLayout(central)
-        main_layout.setSpacing(20)
-        main_layout.setContentsMargins(24, 24, 24, 24)
+        main_layout.setSpacing(12)
+        main_layout.setContentsMargins(16, 16, 16, 16)
 
         # Modern header
         title = QLabel("GridKit")
@@ -208,21 +208,21 @@ class ExcelComparisonGUI(QMainWindow):
         return f"""
             QGroupBox {{
                 background: {self.COLOR_BG_WHITE};
-                border-radius: 12px;
-                padding: 14px;
-                margin-top: 12px;
+                border-radius: 10px;
+                padding: 12px 12px;
+                margin-top: 16px;
                 border: 1px solid {self.COLOR_BORDER};
             }}
             QGroupBox::title {{
                 color: {self.COLOR_TEXT_PRIMARY};
-                font-size: 16pt;
+                font-size: 11pt;
                 font-weight: bold;
-                padding: 0 8px;
                 subcontrol-origin: margin;
                 subcontrol-position: top left;
-                left: 12px;
-                top: -10px;
-                background: {self.COLOR_BG_WHITE};
+                padding: 0 4px;
+                left: 10px;
+                top: 0px;
+                background: transparent;
             }}
         """
 
@@ -231,15 +231,18 @@ class ExcelComparisonGUI(QMainWindow):
         group = QGroupBox("📁 1. Select Files")
         group.setStyleSheet(self.card_style())
         layout = QVBoxLayout(group)
-        layout.setSpacing(12)
-        layout.setContentsMargins(16, 28, 16, 16)
+        layout.setSpacing(8)
+        layout.setContentsMargins(12, 24, 12, 12)
 
-        # File A section
-        file_a_layout = QGridLayout()
-        file_a_layout.setSpacing(8)
+        # Single grid for both files to ensure perfect alignment
+        # Columns: [Label] [Input] [Button]
+        grid_layout = QGridLayout()
+        grid_layout.setSpacing(8)
         
+        # --- File A ---
         lbl_a = QLabel("File A:")
-        lbl_a.setStyleSheet(f"font-size: 12pt; font-weight: 600; color: {self.COLOR_TEXT_PRIMARY};")
+        lbl_a.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        lbl_a.setStyleSheet(f"font-size: 11pt; font-weight: 600; color: {self.COLOR_TEXT_PRIMARY};")
        
         self.file_a_display = QLineEdit()
         self.file_a_display.setPlaceholderText("Drag & drop, browse, or paste file path...")
@@ -259,28 +262,24 @@ class ExcelComparisonGUI(QMainWindow):
         """)
         self.file_a_display.textChanged.connect(lambda: self.on_file_path_changed("A"))
        
-        btn_a = QPushButton("Browse...")
-        btn_a.setFixedWidth(100)
+        btn_a = QPushButton("Browse")
+        btn_a.setFixedWidth(90)
         btn_a.setStyleSheet(self.secondary_button_style())
         btn_a.clicked.connect(lambda: self.select_file("A"))
 
-        file_a_layout.addWidget(lbl_a, 0, 0)
-        file_a_layout.addWidget(self.file_a_display, 0, 1)
-        file_a_layout.addWidget(btn_a, 0, 2)
-        file_a_layout.setColumnStretch(1, 1)
+        grid_layout.addWidget(lbl_a, 0, 0)
+        grid_layout.addWidget(self.file_a_display, 0, 1)
+        grid_layout.addWidget(btn_a, 0, 2)
         
-        tip_a = QLabel("💡 Tip: Put your original (before) file here")
-        tip_a.setStyleSheet(f"font-size: 10pt; color: {self.COLOR_TEXT_SECONDARY}; padding-left: 8px; font-style: italic;")
-        file_a_layout.addWidget(tip_a, 1, 1)
-        
-        layout.addLayout(file_a_layout)
+        # Tip A
+        tip_a = QLabel("Original (before) file")
+        tip_a.setStyleSheet(f"font-size: 9pt; color: {self.COLOR_TEXT_SECONDARY}; padding-left: 4px; font-style: italic;")
+        grid_layout.addWidget(tip_a, 1, 1)
 
-        # File B section
-        file_b_layout = QGridLayout()
-        file_b_layout.setSpacing(8)
-        
+        # --- File B ---
         lbl_b = QLabel("File B:")
-        lbl_b.setStyleSheet(f"font-size: 12pt; font-weight: 600; color: {self.COLOR_TEXT_PRIMARY};")
+        lbl_b.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        lbl_b.setStyleSheet(f"font-size: 11pt; font-weight: 600; color: {self.COLOR_TEXT_PRIMARY};")
        
         self.file_b_display = QLineEdit()
         self.file_b_display.setPlaceholderText("Drag & drop, browse, or paste file path...")
@@ -300,22 +299,26 @@ class ExcelComparisonGUI(QMainWindow):
         """)
         self.file_b_display.textChanged.connect(lambda: self.on_file_path_changed("B"))
        
-        btn_b = QPushButton("Browse...")
-        btn_b.setFixedWidth(100)
+        btn_b = QPushButton("Browse")
+        btn_b.setFixedWidth(90)
         btn_b.setStyleSheet(self.secondary_button_style())
         btn_b.clicked.connect(lambda: self.select_file("B"))
 
-        file_b_layout.addWidget(lbl_b, 0, 0)
-        file_b_layout.addWidget(self.file_b_display, 0, 1)
-        file_b_layout.addWidget(btn_b, 0, 2)
-        file_b_layout.setColumnStretch(1, 1)
+        grid_layout.addWidget(lbl_b, 2, 0)
+        grid_layout.addWidget(self.file_b_display, 2, 1)
+        grid_layout.addWidget(btn_b, 2, 2)
         
-        tip_b = QLabel("💡 Tip: Put your updated (after) file here to see what changed")
-        tip_b.setStyleSheet(f"font-size: 10pt; color: {self.COLOR_TEXT_SECONDARY}; padding-left: 8px; font-style: italic;")
-        file_b_layout.addWidget(tip_b, 1, 1)
-        
-        layout.addLayout(file_b_layout)
+        # Tip B
+        tip_b = QLabel("Updated (after) file")
+        tip_b.setStyleSheet(f"font-size: 9pt; color: {self.COLOR_TEXT_SECONDARY}; padding-left: 4px; font-style: italic;")
+        grid_layout.addWidget(tip_b, 3, 1) # Skip a row for spacing if needed or put right below
 
+        # Set column stretch
+        grid_layout.setColumnStretch(1, 1)
+        grid_layout.setColumnStretch(0, 0)
+        grid_layout.setColumnStretch(2, 0)
+        
+        layout.addLayout(grid_layout)
         return group
 
     def on_file_path_changed(self, which):
@@ -361,8 +364,8 @@ class ExcelComparisonGUI(QMainWindow):
         self.config_group.setEnabled(False)
         self.config_group.setStyleSheet(self.card_style())
         layout = QVBoxLayout(self.config_group)
-        layout.setSpacing(14)
-        layout.setContentsMargins(16, 28, 16, 16)
+        layout.setSpacing(10)
+        layout.setContentsMargins(12, 24, 12, 12)
 
         # Description
         desc_label = QLabel("Use key-based when rows are identified by IDs. Use position-based when rows line up by row number.")
@@ -376,12 +379,12 @@ class ExcelComparisonGUI(QMainWindow):
             QFrame {{
                 background: {self.COLOR_BG_LIGHT};
                 border: 1px solid {self.COLOR_BORDER};
-                border-radius: 8px;
-                padding: 12px;
+                border-radius: 6px;
+                padding: 8px;
             }}
         """)
         mode_layout = QHBoxLayout(mode_container)
-        mode_layout.setSpacing(16)
+        mode_layout.setSpacing(12)
        
         self.mode_key_based = QCheckBox("🔑 Key-Based (Row Matching)")
         self.mode_key_based.setChecked(True)
@@ -405,11 +408,11 @@ class ExcelComparisonGUI(QMainWindow):
                 background: {self.COLOR_BG_LIGHT};
                 border: 1px solid {self.COLOR_BORDER};
                 border-radius: 8px;
-                padding: 12px;
+                padding: 8px;
             }}
         """)
         key_frame_layout = QVBoxLayout(key_frame)
-        key_frame_layout.setSpacing(10)
+        key_frame_layout.setSpacing(8)
         
         key_title = QLabel("🔑 Key Columns")
         key_title.setStyleSheet(f"font-size: 12pt; font-weight: 600; color: {self.COLOR_TEXT_PRIMARY};")
@@ -469,9 +472,6 @@ class ExcelComparisonGUI(QMainWindow):
                 border: 2px solid {self.COLOR_BORDER};
                 border-radius: 6px;
                 background: white;
-            }}
-            QLineEdit:focus {{
-                border-color: {self.COLOR_PRIMARY};
             }}
         """)
         self.key_filter.textChanged.connect(self.filter_key_columns)
@@ -609,8 +609,8 @@ class ExcelComparisonGUI(QMainWindow):
             }}
 
             QCheckBox::indicator {{
-                width: 18px;
-                height: 18px;
+                width: 14px;
+                height: 14px;
                 border-radius: 4px;
                 border: 2px solid {self.COLOR_BORDER};
                 background: white;
@@ -693,170 +693,7 @@ class ExcelComparisonGUI(QMainWindow):
         tiebreaker = self.tiebreaker_combo.currentData()
         self.tiebreaker_tip.setVisible(tiebreaker is not None)
 
-    # ---------- Compare Section ----------
-    # ---------- Compare Section ----------
-    def create_compare_section(self):
-        frame = QFrame()
-        frame.setStyleSheet(f"""
-            QFrame {{
-                background: {self.COLOR_BG_WHITE};
-                border-radius: 12px;
-                border: 1px solid {self.COLOR_BORDER};
-                padding: 16px;
-            }}
-        """)
-        layout = QVBoxLayout(frame)
-        layout.setSpacing(12)
 
-        # Status
-        self.status_label = QLabel("Ready to compare")
-        self.status_label.setStyleSheet(f"font-size: 11pt; color: {self.COLOR_TEXT_SECONDARY};")
-        layout.addWidget(self.status_label)
-
-        # Progress bar
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setRange(0, 0)  # Indeterminate
-        self.progress_bar.setVisible(False)
-        layout.addWidget(self.progress_bar)
-
-        # Buttons
-        btn_layout = QHBoxLayout()
-        btn_layout.addStretch()
-
-        self.compare_btn = QPushButton("▶ Compare")
-        self.compare_btn.setEnabled(False)
-        self.compare_btn.setStyleSheet(self.primary_button_style())
-        self.compare_btn.clicked.connect(self.run_comparison)
-
-        self.cancel_btn = QPushButton("✖ Cancel")
-        self.cancel_btn.setVisible(False)
-        self.cancel_btn.setStyleSheet(self.secondary_button_style())
-        self.cancel_btn.clicked.connect(self.cancel_comparison)
-
-        btn_layout.addWidget(self.cancel_btn)
-        btn_layout.addWidget(self.compare_btn)
-        layout.addLayout(btn_layout)
-
-        return frame
-    def run_comparison(self):
-        if not self.df_a or not self.df_b:
-            QMessageBox.warning(self, "Missing Files", "Please load both files.")
-            return
-
-        keys = [cb.text() for cb in self.key_checkboxes if cb.isChecked()]
-        if self.mode_key_based.isChecked() and not keys:
-            QMessageBox.warning(self, "Missing Keys", "Select at least one key column.")
-            return
-
-        config = ComparisonConfig(
-            key_columns=keys if self.mode_key_based.isChecked() else None,
-            alignment_method=AlignmentMethod.KEY if self.mode_key_based.isChecked()
-            else AlignmentMethod.POSITION,
-            case_sensitive=self.case_sensitive.isChecked(),
-            trim_whitespace=self.trim_whitespace.isChecked(),
-            tiebreaker_column=self.tiebreaker_combo.currentData()
-        )
-
-        self.worker = ComparisonWorker(
-            self.df_a,
-            self.df_b,
-            config,
-            self.file_a_path,
-            self.file_b_path
-        )
-
-        self.worker.progress.connect(self.on_worker_progress)
-        self.worker.finished.connect(self.on_worker_finished)
-        self.worker.error.connect(self.on_worker_error)
-
-        self.progress_bar.setVisible(True)
-        self.cancel_btn.setVisible(True)
-        self.compare_btn.setEnabled(False)
-        self.status_label.setText("Starting comparison…")
-
-        self.worker.start()
-    def on_worker_progress(self, msg):
-        self.status_label.setText(msg)
-
-    def on_worker_finished(self, payload):
-        self.progress_bar.setVisible(False)
-        self.cancel_btn.setVisible(False)
-        self.compare_btn.setEnabled(True)
-
-        output = payload["output_path"]
-        self.status_label.setText("Comparison complete ✅")
-
-        QMessageBox.information(
-            self,
-            "Done",
-            f"Report generated:\n\n{output}"
-        )
-
-    def on_worker_error(self, error):
-        self.progress_bar.setVisible(False)
-        self.cancel_btn.setVisible(False)
-        self.compare_btn.setEnabled(True)
-
-        QMessageBox.critical(self, "Error", error)
-    def cancel_comparison(self):
-        if self.worker and self.worker.isRunning():
-            self.worker.terminate()
-            self.worker.wait()
-
-        self.progress_bar.setVisible(False)
-        self.cancel_btn.setVisible(False)
-        self.compare_btn.setEnabled(True)
-        self.status_label.setText("Comparison cancelled")
-    def select_file(self, which):
-        path, _ = QFileDialog.getOpenFileName(
-            self,
-            "Select Excel File",
-            self.last_directory,
-            "Excel Files (*.xlsx *.xls *.xlsm)"
-        )
-        if path:
-            self.load_file_path(path, which)
-
-    def load_file_path(self, path, which):
-        df = pd.read_excel(path)
-        if which == "A":
-            self.file_a_path = path
-            self.df_a = df
-            self.file_a_display.setText(path)
-        else:
-            self.file_b_path = path
-            self.df_b = df
-            self.file_b_display.setText(path)
-
-        self.last_directory = str(Path(path).parent)
-        self.settings.setValue("last_directory", self.last_directory)
-
-        if self.df_a is not None and self.df_b is not None:
-            self.populate_key_columns()
-            self.config_group.setEnabled(True)
-            self.compare_btn.setEnabled(True)
-    def populate_key_columns(self):
-        for cb in self.key_checkboxes:
-            cb.deleteLater()
-
-        self.key_checkboxes.clear()
-        self.key_grid.setRowStretch(0, 0)
-
-        columns = list(self.df_a.columns)
-        self.key_placeholder.setVisible(False)
-        self.key_scroll.setVisible(True)
-        self.key_filter.setVisible(True)
-        self.select_all_btn.setVisible(True)
-        self.deselect_all_btn.setVisible(True)
-
-        for i, col in enumerate(columns):
-            cb = QCheckBox(col)
-            cb.setStyleSheet(self.modern_checkbox_style())
-            self.key_checkboxes.append(cb)
-            self.key_grid.addWidget(cb, i // 2, i % 2)
-
-        self.key_count_label.setText(f"{len(columns)} columns available")
-        self.key_count_label.setVisible(True)
 
     # ---------- Drag & Drop ----------
     def dragEnterEvent(self, event: QDragEnterEvent):
@@ -889,7 +726,7 @@ class ExcelComparisonGUI(QMainWindow):
         container = QFrame()
         container.setStyleSheet("background: transparent;")
         layout = QVBoxLayout(container)
-        layout.setSpacing(12)
+        layout.setSpacing(8)
 
         # Progress label
         self.progress_label = QLabel("")
@@ -1134,7 +971,10 @@ class ExcelComparisonGUI(QMainWindow):
             self.tiebreaker_combo.clear()
             return
 
-        common_cols = sorted(set(self.df_a.columns) & set(self.df_b.columns))
+        # Preserve order from File A
+        cols_a = list(self.df_a.columns)
+        cols_b_set = set(self.df_b.columns)
+        common_cols = [c for c in cols_a if c in cols_b_set]
 
         if not common_cols:
             QMessageBox.warning(
@@ -1151,16 +991,20 @@ class ExcelComparisonGUI(QMainWindow):
         self.deselect_all_btn.setVisible(True)
         self.key_count_label.setVisible(True)
 
+        self.tiebreaker_combo.addItem("(None)", None)
         for i, col in enumerate(common_cols):
             cb = QCheckBox(col)
             cb.setStyleSheet(self.modern_checkbox_style())
             cb.stateChanged.connect(self.update_key_count)
 
-            row, col_pos = divmod(i, 2)
+            row, col_pos = divmod(i, 4)
             self.key_grid.addWidget(cb, row, col_pos)
             self.key_checkboxes.append(cb)
 
             self.tiebreaker_combo.addItem(col, col)
+
+        if self.tiebreaker_combo.count() > 0:
+            self.tiebreaker_combo.setCurrentIndex(0)
 
         self.update_key_count()
 
@@ -1182,10 +1026,14 @@ class ExcelComparisonGUI(QMainWindow):
             if not keys:
                 raise ValueError("Please select at least one key column.")
 
+            method = AlignmentMethod.POSITION
+            if self.tiebreaker_combo.currentData():
+                method = AlignmentMethod.SECONDARY_SORT
+
             return ComparisonConfig(
-                alignment_method=AlignmentMethod.KEY,
+                alignment_method=method,
                 key_columns=keys,
-                tiebreaker_column=self.tiebreaker_combo.currentData(),
+                secondary_sort_column=self.tiebreaker_combo.currentData(),
                 case_sensitive=self.case_sensitive.isChecked(),
                 trim_whitespace=self.trim_whitespace.isChecked()
             )
@@ -1212,4 +1060,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
