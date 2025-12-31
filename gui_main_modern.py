@@ -213,20 +213,24 @@ class ExcelComparisonGUI(QMainWindow):
     # ---------- Modern Card Style ----------
     def card_style(self):
         return f"""
-                padding: 0 0;
-                left: 0;
-                top: 0;
-                background: transparent;
-                border: none;
-            }}
-        """
-
-    def flat_card_style(self):
-        return f"""
-            QFrame {{
+            QGroupBox {{
                 background: white;
                 border: 1px solid {self.COLOR_BORDER};
-                border-radius: 8px;
+                border-radius: 12px;
+                margin-top: 18px;
+                padding-top: 24px;
+                font-family: 'Segoe UI', system-ui, sans-serif;
+            }}
+            QGroupBox::title {{
+                color: {self.COLOR_TEXT_PRIMARY};
+                font-size: 13pt;
+                font-weight: bold;
+                subcontrol-origin: margin;
+                subcontrol-position: top left;
+                padding: 0 4px;
+                left: 10px;
+                top: 0px;
+                background: transparent;
             }}
         """
 
@@ -374,150 +378,247 @@ class ExcelComparisonGUI(QMainWindow):
 
     # ---------- Config Section ----------
     def create_config_section(self):
-        # Header for the section (Label instead of GroupBox title for cleaner look)
-        container = QWidget()
-        layout = QVBoxLayout(container)
-        layout.setSpacing(16)
-        layout.setContentsMargins(12, 16, 12, 12)
+        self.config_group = QGroupBox("⚙️ 2. Configure Comparison")
+        self.config_group.setEnabled(True) # Always enabled to allow advanced toggle, but inner content disabled
+        self.config_group.setStyleSheet(self.card_style())
         
-        header = QLabel("🔧 2. Configure Comparison")
-        header.setStyleSheet(f"font-size: 13pt; font-weight: bold; color: {self.COLOR_TEXT_PRIMARY};")
-        layout.addWidget(header)
-        
-        # === Row Matching Mode ===
-        mode_label = QLabel("How are rows identified?")
-        mode_label.setStyleSheet(f"font-size: 11pt; font-weight: 600; color: {self.COLOR_TEXT_PRIMARY};")
-        layout.addWidget(mode_label)
+        # Main horizontal layout to split Left (Modes) and Right (Keys/Options)
+        main_layout = QHBoxLayout(self.config_group)
+        main_layout.setSpacing(24)
+        main_layout.setContentsMargins(12, 16, 12, 12) # Reduced top margin
 
-        # Mode Selection: Use Toggle-like or just Radio buttons horizontally
-        # User requested look: [Switch] Key-Based
-        # We'll use horizontal layout for modes since it's cleaner now
-        
+        # === LEFT COLUMN: Modes ===
+        left_container = QWidget()
+        left_layout = QVBoxLayout(left_container)
+        left_layout.setSpacing(12)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        # Concise instruction
+        lbl_instruction = QLabel("Choose how rows should be matched between files.")
+        lbl_instruction.setWordWrap(True)
+        lbl_instruction.setStyleSheet(f"font-size: 11pt; color: {self.COLOR_TEXT_PRIMARY};")
+        left_layout.addWidget(lbl_instruction)
+
+        # Mode Selection Card
+        mode_frame = QFrame()
+        mode_frame.setStyleSheet(self.mode_card_style())
+        mode_layout = QVBoxLayout(mode_frame)
+        mode_layout.setSpacing(10)
+        mode_layout.setContentsMargins(12, 12, 12, 12)
+
+        # Mode selection - Radio Buttons
         self.mode_group = QButtonGroup(self)
         
-        mode_layout = QHBoxLayout()
-        mode_layout.setSpacing(24)
-        
-        self.mode_key_based = QRadioButton("Key-Based")
+        self.mode_key_based = QRadioButton("🔑 Key-Based")
         self.mode_key_based.setChecked(True)
-        self.mode_key_based.setEnabled(False) 
+        self.mode_key_based.setEnabled(False) # Default disabled
         self.mode_key_based.setStyleSheet(self.modern_radio_style())
         self.mode_key_based.toggled.connect(self.on_mode_changed)
         self.mode_group.addButton(self.mode_key_based)
         mode_layout.addWidget(self.mode_key_based)
        
-        self.mode_position_based = QRadioButton("Position-Based")
-        self.mode_position_based.setEnabled(False)
+        self.mode_position_based = QRadioButton("📍 Position-Based")
+        self.mode_position_based.setEnabled(False) # Default disabled
         self.mode_position_based.setStyleSheet(self.modern_radio_style())
         self.mode_position_based.toggled.connect(self.on_mode_changed)
         self.mode_group.addButton(self.mode_position_based)
         mode_layout.addWidget(self.mode_position_based)
         
-        mode_layout.addStretch()
-        layout.addLayout(mode_layout)
+        left_layout.addWidget(mode_frame)
 
-        # Position Info
-        self.position_info = QLabel("ℹ️ Compares files row-by-row (Row 1 to Row 1).")
-        self.position_info.setStyleSheet(f"font-size: 10pt; color: {self.COLOR_TEXT_SECONDARY}; margin-left: 24px;")
+        # Position-based info
+        self.position_info = QLabel(
+            "ℹ️ Compares files row-by-row (Row 1 to Row 1)."
+        )
+        self.position_info.setStyleSheet(f"""
+            font-size: 10pt;
+            color: {self.COLOR_TEXT_SECONDARY};
+            background: #e6f7ff;
+            border: 1px solid #91d5ff;
+            border-radius: 6px;
+            padding: 8px;
+        """)
+        self.position_info.setWordWrap(True)
         self.position_info.setVisible(False)
-        layout.addWidget(self.position_info)
+        left_layout.addWidget(self.position_info)
 
-        # === Key Columns ===
-        self.key_frame = QWidget()
-        self.key_frame.setVisible(True) # Visible by default with placeholder
-        key_layout = QVBoxLayout(self.key_frame)
-        key_layout.setSpacing(8)
-        key_layout.setContentsMargins(0, 8, 0, 0)
+        left_layout.addStretch() 
+        main_layout.addWidget(left_container, stretch=1)
+
+        # === RIGHT COLUMN: Keys & Options ===
+        self.right_container = QWidget()
+        right_layout = QVBoxLayout(self.right_container)
+        right_layout.setSpacing(10)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        # Key columns frame
+        self.key_frame = QFrame()
+        self.key_frame.setVisible(False) # HIDE INITIALLY per requirement
+        self.key_frame.setStyleSheet(f"""
+            QFrame {{
+                background: {self.COLOR_BG_LIGHT};
+                border: 1px solid {self.COLOR_BORDER};
+                border-radius: 8px;
+                padding: 8px;
+            }}
+        """)
+        key_frame_layout = QVBoxLayout(self.key_frame)
+        key_frame_layout.setSpacing(8)
         
-        lbl_keys = QLabel("Key Columns")
-        lbl_keys.setStyleSheet(f"font-size: 11pt; font-weight: 600; color: {self.COLOR_TEXT_PRIMARY};")
-        key_layout.addWidget(lbl_keys)
+        key_header = QHBoxLayout()
+        key_title = QLabel("🔑 Key Columns")
+        key_title.setStyleSheet(f"font-size: 12pt; font-weight: 600; color: {self.COLOR_TEXT_PRIMARY};")
+        key_header.addWidget(key_title)
+        key_header.addStretch()
+        key_frame_layout.addLayout(key_header)
         
-        # Dynamic Scroll Area for Keys
+        self.key_section = QWidget()
+        key_section_layout = QVBoxLayout(self.key_section)
+        key_section_layout.setSpacing(6)
+        key_section_layout.setContentsMargins(0, 0, 0, 0)
+       
+        # Placeholder removed as per requirement
+        # self.key_placeholder = QLabel("Load files to select keys") ...
+
+
+        # Control buttons
+        btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(8)
+       
+        self.select_all_btn = QPushButton("All")
+        self.select_all_btn.setStyleSheet(self.tertiary_button_style())
+        self.select_all_btn.clicked.connect(lambda: self.toggle_all_keys(True))
+        self.select_all_btn.setVisible(False)
+       
+        self.deselect_all_btn = QPushButton("None")
+        self.deselect_all_btn.setStyleSheet(self.tertiary_button_style())
+        self.deselect_all_btn.clicked.connect(lambda: self.toggle_all_keys(False))
+        self.deselect_all_btn.setVisible(False)
+       
+        btn_layout.addWidget(self.select_all_btn)
+        btn_layout.addWidget(self.deselect_all_btn)
+        btn_layout.addStretch()
+        key_section_layout.addLayout(btn_layout)
+
+        # Filter
+        self.key_filter = QLineEdit()
+        self.key_filter.setPlaceholderText("Filter...")
+        self.key_filter.setStyleSheet(f"""
+            QLineEdit {{
+                padding: 4px 8px;
+                font-size: 11pt;
+                border: 2px solid {self.COLOR_BORDER};
+                border-radius: 6px;
+                background: white;
+            }}
+        """)
+        self.key_filter.textChanged.connect(self.filter_key_columns)
+        self.key_filter.setVisible(False)
+        key_section_layout.addWidget(self.key_filter)
+
+        # Scroll / Grid
         self.key_scroll = QScrollArea()
         self.key_scroll.setWidgetResizable(True)
-        self.key_scroll.setFrameShape(QFrame.Shape.NoFrame)
-        # Style to look like a simple list area
+        self.key_scroll.setMinimumHeight(400) # Increased height significantly (~1 inch / 96px+ added)
         self.key_scroll.setStyleSheet(f"""
             QScrollArea {{
-                background: transparent;
-                border: 1px dashed {self.COLOR_BORDER};
+                border: 2px solid {self.COLOR_BORDER};
                 border-radius: 6px;
+                background: white;
             }}
-            QWidget {{ background: transparent; }}
         """)
-        
+        self.key_scroll.setVisible(False)
+
         self.key_container = QWidget()
-        self.key_grid = QVBoxLayout(self.key_container) 
+        self.key_container.setStyleSheet("background: white;")
+        self.key_grid = QGridLayout(self.key_container)
         self.key_grid.setSpacing(4)
         self.key_grid.setContentsMargins(8, 8, 8, 8)
-        self.key_grid.setAlignment(Qt.AlignmentFlag.AlignTop)
-        
-        self.key_scroll.setWidget(self.key_container)
-        
-        # Placeholder Label inside the scroll area initially
-        self.key_placeholder_label = QLabel("Load files to select keys")
-        self.key_placeholder_label.setAlignment(Qt.AlignCenter)
-        self.key_placeholder_label.setStyleSheet(f"color: {self.COLOR_TEXT_TERTIARY}; padding: 20px;")
-        
-        self.key_grid.addWidget(self.key_placeholder_label)
-        
-        # Initial height small
-        self.key_scroll.setFixedHeight(80) 
-        key_layout.addWidget(self.key_scroll)
-        
-        layout.addWidget(self.key_frame)
+        self.key_container.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
 
-        # === Advanced Options ===
-        # Simple toggle button like user asked
-        self.advanced_toggle = QPushButton("▼ Advanced Options")
-        self.advanced_toggle.setVisible(False)
+        self.key_scroll.setWidget(self.key_container)
+        key_section_layout.addWidget(self.key_scroll)
+        
+        # Key count
+        self.key_count_label = QLabel("")
+        self.key_count_label.setStyleSheet(f"font-size: 10pt; color: {self.COLOR_TEXT_SECONDARY};")
+        self.key_count_label.setVisible(False)
+        key_section_layout.addWidget(self.key_count_label)
+       
+        key_frame_layout.addWidget(self.key_section)
+        right_layout.addWidget(self.key_frame)
+
+        # Advanced options (Floating/Hidden)
+        self.advanced_expanded = False
+        
+        # Divider line removed per guidance
+        
+        self.advanced_toggle = QPushButton("⚙️ Advanced Options")
+        self.advanced_toggle.setVisible(False) # HIDE INITIALLY per requirement
         self.advanced_toggle.setCursor(Qt.CursorShape.PointingHandCursor)
         self.advanced_toggle.setStyleSheet(f"""
             QPushButton {{
                 text-align: left;
-                padding: 8px 0;
+                padding: 4px 0px; 
                 font-size: 11pt;
-                color: {self.COLOR_PRIMARY};
+                font-weight: 600;
                 background: transparent;
                 border: none;
-                font-weight: 600;
+                color: {self.COLOR_PRIMARY};
             }}
-            QPushButton:hover {{ text-decoration: underline; }}
+            QPushButton:hover {{
+                color: {self.COLOR_PRIMARY_DARK};
+            }}
         """)
         self.advanced_toggle.clicked.connect(self.toggle_advanced_options)
-        layout.addWidget(self.advanced_toggle)
+        right_layout.addWidget(self.advanced_toggle)
 
-        # Advanced Container
-        self.advanced_container = QWidget()
+        self.advanced_container = QWidget() # No longer a GroupBox
+        # No border style, just a container
+        
         adv_layout = QGridLayout(self.advanced_container)
         adv_layout.setSpacing(12)
-        adv_layout.setContentsMargins(0, 0, 0, 0)
+        adv_layout.setContentsMargins(0, 4, 0, 0) # Minimal padding
         
-        # Tiebreaker
-        adv_layout.addWidget(QLabel("Tiebreaker:"), 0, 0)
+        self.tiebreaker_label = QLabel("Tiebreaker:")
+        self.tiebreaker_label.setStyleSheet(f"font-size: 11pt;")
+        
         self.tiebreaker_combo = QComboBox()
-        self.tiebreaker_combo.setStyleSheet(f"border: 1px solid {self.COLOR_BORDER}; padding: 4px; border-radius: 4px;")
-        adv_layout.addWidget(self.tiebreaker_combo, 0, 1)
+        self.tiebreaker_combo.setStyleSheet(f"""
+            QComboBox {{
+                padding: 4px 8px;
+                font-size: 11pt;
+                border: 1px solid {self.COLOR_BORDER};
+                border-radius: 4px;
+                background: white;
+            }}
+        """)
         
-        # Checkboxes
+        adv_layout.addWidget(self.tiebreaker_label, 0, 0)
+        adv_layout.addWidget(self.tiebreaker_combo, 0, 1)
+
         self.case_sensitive = QCheckBox("Case Sensitive")
+        self.case_sensitive.setStyleSheet(self.modern_checkbox_style())
+        
         self.trim_whitespace = QCheckBox("Trim Whitespace")
         self.trim_whitespace.setChecked(True)
+        self.trim_whitespace.setStyleSheet(self.modern_checkbox_style())
+
         adv_layout.addWidget(self.case_sensitive, 1, 0)
         adv_layout.addWidget(self.trim_whitespace, 1, 1)
-        
-        self.advanced_container.setVisible(False)
-        layout.addWidget(self.advanced_container)
-        
-        # Tiebreaker tip
-        self.tiebreaker_tip = QLabel("💡 Use sort col for order mismatch")
-        self.tiebreaker_tip.setVisible(False)
-        self.tiebreaker_tip.setStyleSheet(f"color: {self.COLOR_TEXT_SECONDARY}; font-size: 9pt;")
-        layout.addWidget(self.tiebreaker_tip)
 
-        # Store for access
-        self.config_group = container 
+        self.advanced_container.setVisible(False) # Hidden by default
+        right_layout.addWidget(self.advanced_container)
+
+        self.tiebreaker_tip = QLabel("💡 Use sort col for order mismatch")
+        self.tiebreaker_tip.setStyleSheet(f"font-size: 9pt; color: {self.COLOR_TEXT_SECONDARY}; font-style: italic;")
+        self.tiebreaker_tip.setVisible(False) # Managed by logic
+        right_layout.addWidget(self.tiebreaker_tip)
+
+        main_layout.addWidget(self.right_container, stretch=3)
+
         return self.config_group
 
     def modern_radio_style(self):
@@ -635,6 +736,10 @@ class ExcelComparisonGUI(QMainWindow):
         if self.mode_key_based.isChecked():
             self.key_frame.setVisible(True)
             self.position_info.setVisible(False)
+            # Ensure advanced toggle follows visibility rules if needed, 
+            # but usually it's independent. User said "Hide Key Columns panel", 
+            # didn't explicitly say hide Advanced Options in Key mode (though normally they go together).
+            # We'll keep advanced options visible if files are loaded.
         else:
             self.key_frame.setVisible(False)
             self.position_info.setVisible(True)
@@ -697,22 +802,10 @@ class ExcelComparisonGUI(QMainWindow):
         btn_layout = QHBoxLayout()
         btn_layout.addStretch() # Right Aligned
 
-        self.compare_btn = QPushButton("Compare →")
-        self.compare_btn.setFixedHeight(48)
-        self.compare_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.compare_btn = QPushButton("▶ Compare")
+        self.compare_btn.setFixedHeight(44)
         self.compare_btn.setEnabled(False)
-        self.compare_btn.setStyleSheet(f"""
-            QPushButton {{
-                background: {self.COLOR_PRIMARY};
-                color: white;
-                font-size: 13pt;
-                font-weight: 600;
-                border-radius: 8px;
-                padding: 0 24px;
-            }}
-            QPushButton:hover {{ background: {self.COLOR_PRIMARY_DARK}; }}
-            QPushButton:disabled {{ background: {self.COLOR_BORDER}; }}
-        """)
+        self.compare_btn.setStyleSheet(self.primary_button_style())
         self.compare_btn.clicked.connect(self.run_comparison)
 
         self.cancel_btn = QPushButton("✖ Cancel")
@@ -850,18 +943,19 @@ class ExcelComparisonGUI(QMainWindow):
         ready = self.df_a is not None and self.df_b is not None
         self.compare_btn.setEnabled(ready)
         
-        # Enable specific config elements
+        # Enable specific config elements instead of the whole group
         self.mode_key_based.setEnabled(ready)
         self.mode_position_based.setEnabled(ready)
         
-        # Show Advanced Toggle based on readiness
-        self.advanced_toggle.setVisible(ready)
-        
-        # Key Frame is always visible in Key mode now (with placeholder if not ready)
-        if self.mode_key_based.isChecked():
-            self.key_frame.setVisible(True)
+        # Show/Hide Key Frame and Advanced Toggle based on readiness
+        if ready:
+            self.advanced_toggle.setVisible(True)
+            # Only show key frame if in Key mode
+            if self.mode_key_based.isChecked():
+                self.key_frame.setVisible(True)
         else:
-            self.key_frame.setVisible(False)
+            self.key_frame.setVisible(False) # Hide if not ready
+            self.advanced_toggle.setVisible(False)
 
     def select_file(self, which):
         path, _ = QFileDialog.getOpenFileName(
@@ -937,18 +1031,7 @@ class ExcelComparisonGUI(QMainWindow):
         self.key_checkboxes.clear()
 
         if self.df_a is None or self.df_b is None:
-            # Restore placeholder
-            while self.key_grid.count():
-                item = self.key_grid.takeAt(0)
-                if item.widget(): item.widget().deleteLater()
-            
-            self.key_placeholder_label = QLabel("Load files to select keys")
-            self.key_placeholder_label.setAlignment(Qt.AlignCenter)
-            self.key_placeholder_label.setStyleSheet(f"color: {self.COLOR_TEXT_TERTIARY}; padding: 20px;")
-            self.key_grid.addWidget(self.key_placeholder_label)
-            self.key_scroll.setFixedHeight(80)
-            
-            self.key_scroll.setVisible(True)
+            self.key_scroll.setVisible(False)
             self.key_filter.setVisible(False)
             self.select_all_btn.setVisible(False)
             self.deselect_all_btn.setVisible(False)
@@ -969,47 +1052,23 @@ class ExcelComparisonGUI(QMainWindow):
             )
             return
 
-        # Calculate dynamic height
-        # Row height roughly 28px. 4 rows = 112px. + Padding ~20px = 132px.
-        num_keys = len(common_cols)
-        
-        # We need to clear grid properly (widgets are not automatically deleted with clear)
-        # But we called clear() before which is just for the list self.key_checkboxes
-        # Logic to clear layout items:
-        while self.key_grid.count():
-            item = self.key_grid.takeAt(0)
-            widget = item.widget()
-            if widget:
-                widget.deleteLater()
-        
         self.key_scroll.setVisible(True)
-        self.key_placeholder_label.setVisible(False) # Hide placeholder
-        
-        # Calculate size: 
-        row_height = 32 # approx
-        spacing = 4
-        # If <= 4, fit content. If > 4, limit.
-        if num_keys <= 4:
-            total_h = (num_keys * row_height) + (num_keys * spacing) + 20
-            self.key_scroll.setFixedHeight(total_h)
-            self.key_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        else:
-            total_h = (4 * row_height) + (4 * spacing) + 20
-            self.key_scroll.setFixedHeight(total_h)
-            self.key_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.key_filter.setVisible(True)
+        self.select_all_btn.setVisible(True)
+        self.deselect_all_btn.setVisible(True)
+        self.key_count_label.setVisible(True)
 
-        self.key_checkboxes = []
-        # Populate
         self.tiebreaker_combo.addItem("(None)", None)
         for i, col in enumerate(common_cols):
             cb = QCheckBox(col)
-            cb.setStyleSheet("font-size: 11pt; padding: 4px;")
+            cb.setStyleSheet(self.modern_checkbox_style())
             cb.stateChanged.connect(self.update_key_count)
-            self.key_grid.addWidget(cb)
+
+            row, col_pos = divmod(i, 4)
+            self.key_grid.addWidget(cb, row, col_pos)
             self.key_checkboxes.append(cb)
+
             self.tiebreaker_combo.addItem(col, col)
-            
-        self.key_grid.addStretch() # Push items to top
 
         if self.tiebreaker_combo.count() > 0:
             self.tiebreaker_combo.setCurrentIndex(0)
