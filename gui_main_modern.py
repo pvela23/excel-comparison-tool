@@ -455,7 +455,7 @@ class ExcelComparisonGUI(QMainWindow):
 
         # Key columns frame
         self.key_frame = QFrame()
-        self.key_frame.setVisible(False) # HIDE INITIALLY per requirement
+        self.key_frame.setVisible(True) # Show at startup
         self.key_frame.setStyleSheet(f"""
             QFrame {{
                 background: {self.COLOR_BG_LIGHT};
@@ -521,7 +521,7 @@ class ExcelComparisonGUI(QMainWindow):
         # Scroll / Grid
         self.key_scroll = QScrollArea()
         self.key_scroll.setWidgetResizable(True)
-        self.key_scroll.setMinimumHeight(400) # Increased height significantly (~1 inch / 96px+ added)
+        self.key_scroll.setMinimumHeight(200) # Reduced to minimize empty space
         self.key_scroll.setStyleSheet(f"""
             QScrollArea {{
                 border: 2px solid {self.COLOR_BORDER};
@@ -736,13 +736,14 @@ class ExcelComparisonGUI(QMainWindow):
         if self.mode_key_based.isChecked():
             self.key_frame.setVisible(True)
             self.position_info.setVisible(False)
-            # Ensure advanced toggle follows visibility rules if needed, 
-            # but usually it's independent. User said "Hide Key Columns panel", 
-            # didn't explicitly say hide Advanced Options in Key mode (though normally they go together).
-            # We'll keep advanced options visible if files are loaded.
+            self.tiebreaker_label.setVisible(True)
+            self.tiebreaker_combo.setVisible(True)
         else:
             self.key_frame.setVisible(False)
             self.position_info.setVisible(True)
+            self.tiebreaker_label.setVisible(False)
+            self.tiebreaker_combo.setVisible(False)
+            self.tiebreaker_tip.setVisible(False)
 
     def on_tiebreaker_changed(self):
         """Handle tiebreaker selection"""
@@ -1106,6 +1107,7 @@ class ExcelComparisonGUI(QMainWindow):
             )
 
         return ComparisonConfig(
+            key_columns=[],  # No keys needed for position-based comparison
             alignment_method=AlignmentMethod.POSITION,
             case_sensitive=self.case_sensitive.isChecked(),
             trim_whitespace=self.trim_whitespace.isChecked()
